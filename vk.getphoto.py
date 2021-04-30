@@ -3,6 +3,7 @@ import requests
 from requests import get
 from json import loads
 import os
+import time
 
 TOKEN = input('Введите Yandex token:')
 class YandexDisk:
@@ -41,14 +42,14 @@ class YandexDisk:
         params = {"path": name_of_folder, "overwrite": "true"}
         response = requests.put(upload_url, headers=headers, params = params)
         if response.status_code == 201:
-            pass
+            print('Success')
 
     def upload_file_to_disk(self, disk_file_path, filename):
         href = self._get_upload_link(disk_file_path=disk_file_path).get("href", "")
         response = requests.put(href, data=open(filename, 'rb'))
         response.raise_for_status()
         if response.status_code == 201:
-            pass
+            print('Success')
 
 class api:
     def __init__(self, token):
@@ -70,7 +71,7 @@ class api:
             'access_token': self.__token__,
             'version': '5.130'
         })
-        return loads(result.text)
+        return result.json()
 
 
     def get_photos_from_album_list(self, owner_id, album_id, count):
@@ -123,10 +124,16 @@ class api:
 
 token = '958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008'
 vk_cl = api(token)
+
 vk_id = input('Введите vkontakte ID:')
-photos = vk_cl.get_photos_from_album_list(vk_id,'profile',100)
-likes = vk_cl.get_likes(vk_id,'profile',100)
+photos = vk_cl.get_photos_from_album_list(vk_id, 'profile', 100)
+likes = vk_cl.get_likes(vk_id, 'profile', 100)
 diction = {}
+the_list = []
+for like in likes:
+    time_num = like + time.time()
+    clear_num = time_num - int(time.time())
+    the_list.append(time_num)
 # pprint(photos)
 
 import urllib.request
@@ -139,14 +146,24 @@ def dl_jpg(url, file_path, file_name):
 for n in range(len(photos)):
     diction[photos[n]] = likes[n]
 # pprint(diction)
+set = set()
+second_l = []
 for key, value in diction.items():
-    dl_jpg(key, xx, str(value))
-
+    if value not in set:
+        set.add(value)
+        second_l.append(value)
+        dl_jpg(key, xx, str(value))
+    if value in set:
+        new_val = value + time.time()
+        clear_num = new_val - int(time.time())
+        second_l.append(clear_num)
+        dl_jpg(key, xx, str(clear_num))
 ya = YandexDisk(token=TOKEN)
 name_of_folder = 'Vk_photos'
 ya.upload_folder('/'+name_of_folder)
 from tqdm import tqdm
-for title in tqdm(likes):
+for title in tqdm(second_l):
     ya.upload_file_to_disk(('/'+name_of_folder+'/'+str(title)+'.jpg'), ('C:\\Users\\Laterman\\PycharmProjects\\pythonProject\\2.4.files\\sorted\\Photos\\'+str(title)+'.jpg'))
 
 pprint(ya.get_files_list())
+
